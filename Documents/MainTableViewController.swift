@@ -26,7 +26,7 @@ class MainTableViewController: UITableViewController {
     }
     
     @objc private func didTabCreateFolder(){
-        showMessageAddFolder(in: self) { [weak self] text in
+        TextPicker.showMessageAddFolder(in: self) { [weak self] text in
             guard let self else {
                 return
             }
@@ -39,21 +39,7 @@ class MainTableViewController: UITableViewController {
         presentImagePicker()
     }
     
-    func showMessageAddFolder(in viewController: UIViewController, complition: @escaping ((_ text: String) -> Void)){
-        let alert = UIAlertController(title: "Add Folder", message: nil, preferredStyle: .alert)
-        let alerOkAction = UIAlertAction(title: "Ok", style: .default){_ in
-            if let text = alert.textFields?[0].text{
-                complition(text)
-            }
-        }
-        let alerCancelAction = UIAlertAction(title: "Cancel", style: .default)
-        alert.addTextField{ textField in
-            textField.placeholder = "Entel name folder"
-        }
-        alert.addAction(alerOkAction)
-        alert.addAction(alerCancelAction)
-        viewController.present(alert, animated: true)
-    }
+
     
     private func presentImagePicker(){
         let imagePicker = UIImagePickerController()
@@ -61,22 +47,46 @@ class MainTableViewController: UITableViewController {
         imagePicker.sourceType = .photoLibrary
         present(imagePicker, animated: true, completion: nil)
     }
+    
+    private func fileSize(atPath path: String) -> Int64 {
+        let fileManager = FileManager.default
+        do {
+            let attributes = try fileManager.attributesOfItem(atPath: path)
+            if let fileSize = attributes[FileAttributeKey.size] as? Int64 {
+                return fileSize
+            } else {
+                print("Unable to get file size")
+                return -1
+            }
+        } catch {
+            print("Error: \(error)")
+            return -1
+        }
+    }
+    
+    func updateTable(){
+        tableView.reloadData()
+    }
 
     // MARK: - Table view data source
 
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return fileManager.contentsOfDirectory(path: content.path).count
+        return fileManager.contentsOfDirectory(path: content.path, isSorted: !Settings.shared.alphabetOrder).count
     }
 
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = UITableViewCell()
         var config = UIListContentConfiguration.cell()
-        config.text = fileManager.contentsOfDirectory(path: content.path)[indexPath.row]
+        let isFolder = fileManager.isPatchForItemIsFolder(path: content.path, name: fileManager.contentsOfDirectory(path: content.path, isSorted: !Settings.shared.alphabetOrder)[indexPath.row])
+        config.text = fileManager.contentsOfDirectory(path: content.path, isSorted: !Settings.shared.alphabetOrder)[indexPath.row]
+        if(!isFolder && !Settings.shared.viewPhotoSize){
+            config.secondaryText = "size: \(fileSize(atPath: content.path + "/" + fileManager.contentsOfDirectory(path: content.path, isSorted: !Settings.shared.alphabetOrder)[indexPath.row])) kb"
+        }
         cell.contentConfiguration = config
-        cell.accessoryType = fileManager.isPatchForItemIsFolder(path: content.path, name: fileManager.contentsOfDirectory(path: content.path)[indexPath.row]) ? .disclosureIndicator : .none
+        cell.accessoryType = isFolder ? .disclosureIndicator : .none
         return cell
     }
     
@@ -89,7 +99,7 @@ class MainTableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            fileManager.removeContent(path: content.path, nameDeleteItem: fileManager.contentsOfDirectory(path: content.path)[indexPath.row])
+            fileManager.removeContent(path: content.path, nameDeleteItem: fileManager.contentsOfDirectory(path: content.path, isSorted: !Settings.shared.alphabetOrder)[indexPath.row])
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
@@ -97,10 +107,10 @@ class MainTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if fileManager.isPatchForItemIsFolder(path: content.path, name: fileManager.contentsOfDirectory(path: content.path)[indexPath.row]) {
-            let vc = MainTableViewController()
-            vc.content = Content(path: content.path + "/" + fileManager.contentsOfDirectory(path: content.path)[indexPath.row])
-            navigationController?.pushViewController(vc, animated: true)
+        if fileManager.isPatchForItemIsFolder(path: content.path, name: fileManager.contentsOfDirectory(path: content.path, isSorted: !Settings.shared.alphabetOrder)[indexPath.row]) {
+            let viewController = MainTableViewController()
+            viewController.content = Content(path: content.path + "/" + fileManager.contentsOfDirectory(path: content.path, isSorted: !Settings.shared.alphabetOrder)[indexPath.row])
+            navigationController?.pushViewController(viewController, animated: true)
         }
     }
 }

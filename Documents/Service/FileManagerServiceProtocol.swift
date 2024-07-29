@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 
 protocol FileManagerServiceProtocol {
-    func contentsOfDirectory(path: String) -> [String]
+    func contentsOfDirectory(path: String, isSorted: Bool) -> [String]
     func createDirectory(path: String, name: String)
     func createFile(path: String, image: UIImage)
     func removeContent(path: String, nameDeleteItem: String)

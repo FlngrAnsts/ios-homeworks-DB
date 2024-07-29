@@ -10,8 +10,13 @@ import UIKit
 
 class FileManagerService: FileManagerServiceProtocol{
     
-    func contentsOfDirectory(path: String) -> [String] {
-        return (try? FileManager.default.contentsOfDirectory(atPath: path)) ?? []
+    func contentsOfDirectory(path: String, isSorted: Bool) -> [String] {
+        if(isSorted){
+            return (try? FileManager.default.contentsOfDirectory(atPath: path))?.sorted() ?? []
+        }else{
+            return (try? FileManager.default.contentsOfDirectory(atPath: path))?.sorted().reversed() ?? []
+        }
+       
     }
     
     func createDirectory(path: String, name: String) {
